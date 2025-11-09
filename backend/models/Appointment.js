@@ -8,4 +8,4 @@ const appointmentSchema = new mongoose.Schema({
   status: { type: String, enum: ["Pending", "Approved", "Completed", "Cancelled"], default: "Pending" }
 }, { timestamps: true });
 
-module.exports = mongoose.model("Appointment", appointmentSchema);
+
