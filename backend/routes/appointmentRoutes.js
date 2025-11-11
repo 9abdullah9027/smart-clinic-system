@@ -1,26 +1,25 @@
 const express = require("express");
 const router = express.Router();
-const Appointment = require("../models/Appointment"); // We'll create this model next
 
-// Create a new appointment
-router.post("/", async (req, res) => {
-  try {
-    const newAppointment = new Appointment(req.body);
-    await newAppointment.save();
-    res.status(201).json({ message: "Appointment created", appointment: newAppointment });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
+const {
+  createAppointment,
+  getMyAppointments,
+  getAllAppointments,
+  deleteAppointment,
+} = require("../controllers/appointmentController");
 
-// Get all appointments (for testing)
-router.get("/", async (req, res) => {
-  try {
-    const appointments = await Appointment.find();
-    res.json(appointments);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
+const protect = require("../middleware/authMiddleware"); // or { protect } if exported as object
+
+// Create appointment
+router.post("/", protect, createAppointment);
+
+// Get my appointments
+router.get("/me", protect, getMyAppointments);
+
+// Get all appointments (for admin/doctor)
+router.get("/", protect, getAllAppointments);
+
+// Delete appointment
+router.delete("/:id", protect, deleteAppointment);
 
 module.exports = router;
