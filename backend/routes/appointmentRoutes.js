@@ -3,23 +3,22 @@ const router = express.Router();
 
 const {
   createAppointment,
-  getMyAppointments,
   getAllAppointments,
+  getAppointmentById,
+  updateAppointment,
   deleteAppointment,
 } = require("../controllers/appointmentController");
 
-const protect = require("../middleware/authMiddleware"); // or { protect } if exported as object
+const { protect } = require("../middleware/authMiddleware");
+const { roleCheck } = require("../middleware/roleMiddleware"); // <-- FIXED
+console.log("protect =", protect);
+console.log("roleCheck =", roleCheck);
+console.log("roleCheck('admin') =", roleCheck("admin"));
 
-// Create appointment
-router.post("/", protect, createAppointment);
-
-// Get my appointments
-router.get("/me", protect, getMyAppointments);
-
-// Get all appointments (for admin/doctor)
-router.get("/", protect, getAllAppointments);
-
-// Delete appointment
-router.delete("/:id", protect, deleteAppointment);
+router.post("/", protect, roleCheck("patient"), createAppointment);
+router.get("/", protect, roleCheck("admin"), getAllAppointments);
+router.get("/:id", protect, roleCheck("admin", "doctor"), getAppointmentById);
+router.put("/:id", protect, roleCheck("doctor"), updateAppointment);
+router.delete("/:id", protect, roleCheck("admin"), deleteAppointment);
 
 module.exports = router;
