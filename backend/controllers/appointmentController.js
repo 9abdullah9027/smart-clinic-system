@@ -20,36 +20,58 @@ exports.createAppointment = async (req, res) => {
   }
 };
 
-// Get appointments of logged-in user
-exports.getMyAppointments = async (req, res) => {
+// Get one appointment by ID
+exports.getAppointmentById = async (req, res) => {
   try {
-    const appointments = await Appointment.find({ patient: req.user._id });
-    res.json({ appointments });
+    const appointment = await Appointment.findById(req.params.id);
+
+    if (!appointment) {
+      return res.status(404).json({ message: "Appointment not found" });
+    }
+
+    res.json({ appointment });
   } catch (error) {
     res.status(500).json({ message: "Server error", error });
   }
 };
 
-// Admin or doctor can get all appointments (optional)
+// Update appointment
+exports.updateAppointment = async (req, res) => {
+  try {
+    const updated = await Appointment.findByIdAndUpdate(req.params.id, req.body, {
+      new: true,
+    });
+
+    if (!updated) {
+      return res.status(404).json({ message: "Appointment not found" });
+    }
+
+    res.json({ message: "Appointment updated", updated });
+  } catch (error) {
+    res.status(500).json({ message: "Server error", error });
+  }
+};
+
+// Get all appointments
 exports.getAllAppointments = async (req, res) => {
   try {
-    const appointments = await Appointment.find().populate("patient", "name email");
+    const appointments = await Appointment.find();
     res.json({ appointments });
   } catch (error) {
     res.status(500).json({ message: "Server error", error });
   }
 };
 
+// Delete appointment
 exports.deleteAppointment = async (req, res) => {
   try {
-    const { id } = req.params;
-    const deleted = await Appointment.findByIdAndDelete(id);
+    const deleted = await Appointment.findByIdAndDelete(req.params.id);
 
     if (!deleted) {
       return res.status(404).json({ message: "Appointment not found" });
     }
 
-    res.json({ message: "Appointment deleted successfully" });
+    res.json({ message: "Appointment deleted" });
   } catch (error) {
     res.status(500).json({ message: "Server error", error });
   }

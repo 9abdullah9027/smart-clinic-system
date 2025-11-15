@@ -7,6 +7,7 @@ const {
   getAppointmentById,
   updateAppointment,
   deleteAppointment,
+  getMyAppointments,
 } = require("../controllers/appointmentController");
 
 const { protect } = require("../middleware/authMiddleware");
