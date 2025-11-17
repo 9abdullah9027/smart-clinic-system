@@ -1,4 +1,4 @@
-const Appointment = require("../models/Appointment");
+const Appointment = require("../models/Appointment"); // match your file name
 const User = require("../models/User");
 
 // Create new appointment — Only PATIENT can create
@@ -23,11 +23,7 @@ exports.createAppointment = async (req, res) => {
     await appointment.save();
 
     // Populate doctor and patient info
-await appointment.populate([
-  { path: "patient", select: "name email" },
-  { path: "doctor", select: "name email" }
-]);
-
+    await appointment.populate("patient", "name email").populate("doctor", "name email");
 
     res.status(201).json({ message: "Appointment created", appointment });
   } catch (error) {
