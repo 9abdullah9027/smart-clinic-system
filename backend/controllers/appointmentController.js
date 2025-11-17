@@ -23,7 +23,11 @@ exports.createAppointment = async (req, res) => {
     await appointment.save();
 
     // Populate doctor and patient info
-    await appointment.populate("patient", "name email").populate("doctor", "name email");
+await appointment.populate([
+  { path: "patient", select: "name email" },
+  { path: "doctor", select: "name email" }
+]);
+
 
     res.status(201).json({ message: "Appointment created", appointment });
   } catch (error) {
