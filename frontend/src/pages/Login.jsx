@@ -1,68 +1,65 @@
 import React from "react";
-import { motion } from "framer-motion";
 
 const Login = () => {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
-      {/* Container */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-        className="w-full max-w-md bg-white p-8 shadow-lg rounded-xl border border-gray-100"
-      >
-        {/* Logo / Title */}
-        <div className="text-center mb-8">
-          <motion.h1
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 }}
-            className="text-3xl font-bold text-blue-600"
-          >
-            Smart Clinic System
-          </motion.h1>
-          <p className="text-gray-500 mt-2">Welcome back! Please log in.</p>
-        </div>
+    <div className="min-h-screen flex items-center justify-center bg-gray-100">
 
-        {/* Form */}
+      {/* Login Card */}
+      <div className="bg-white w-full max-w-md p-10 rounded-xl shadow-lg border border-gray-200">
+        
+        {/* Title */}
+        <h1 className="text-2xl font-semibold text-gray-800 text-center">
+          Smart Clinic Admin
+        </h1>
+        <p className="text-center text-gray-500 mt-2 mb-8">
+          Sign in to access your dashboard
+        </p>
+
         <form className="space-y-5">
+
+          {/* Email */}
           <div>
-            <label className="text-gray-700 font-medium">Email</label>
+            <label className="block text-gray-700 font-medium mb-1">Email</label>
             <input
               type="email"
-              className="w-full mt-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
-              placeholder="you@example.com"
+              placeholder="admin@example.com"
+              className="w-full px-4 py-3 rounded-lg bg-gray-50 border border-gray-300 
+                         text-gray-800 placeholder-gray-500
+                         focus:outline-none focus:ring-2 focus:ring-gray-400"
             />
           </div>
 
+          {/* Password */}
           <div>
-            <label className="text-gray-700 font-medium">Password</label>
+            <label className="block text-gray-700 font-medium mb-1">Password</label>
             <input
               type="password"
-              className="w-full mt-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
               placeholder="••••••••"
+              className="w-full px-4 py-3 rounded-lg bg-gray-50 border border-gray-300
+                         text-gray-800 placeholder-gray-500
+                         focus:outline-none focus:ring-2 focus:ring-gray-400"
             />
           </div>
 
           {/* Login Button */}
-          <motion.button
-            whileTap={{ scale: 0.95 }}
-            className="w-full py-3 bg-blue-600 text-white rounded-lg text-lg font-semibold hover:bg-blue-700 transition-all"
+          <button
+            type="submit"
+            className="w-full py-3 rounded-lg bg-gray-800 text-white font-medium
+                       hover:bg-gray-900 transition-all"
           >
             Login
-          </motion.button>
+          </button>
         </form>
 
-        {/* Extra */}
-        <div className="text-center mt-6">
-          <a
-            href="#"
-            className="text-blue-600 hover:underline text-sm font-medium"
-          >
-            Forgot Password?
-          </a>
-        </div>
-      </motion.div>
+        {/* Footer */}
+        <p className="text-center text-gray-600 text-sm mt-6">
+          Forgot password?{" "}
+          <span className="text-gray-900 font-medium cursor-pointer hover:underline">
+            Reset here
+          </span>
+        </p>
+      </div>
+
     </div>
   );
 };
