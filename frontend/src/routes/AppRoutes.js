@@ -4,15 +4,65 @@ import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import Login from "../pages/Login";
 import Dashboard from "../pages/Dashboard";
 import Appointments from "../pages/Appointments";
+import Patients from "../pages/Patients";
+import Doctors from "../pages/Doctors";
+import Settings from "../pages/Settings";
 
-const AppRoutes = () => (
-  <Router>
-    <Routes>
-      <Route path="/" element={<Login />} />
-      <Route path="/dashboard" element={<Dashboard />} />
-      <Route path="/appointments" element={<Appointments />} />
-    </Routes>
-  </Router>
-);
+import MainLayout from "../layout/MainLayout";
 
-export default AppRoutes;
+export default function AppRoutes() {
+  return (
+    <Router>
+      <Routes>
+        {/* Public Route */}
+        <Route path="/login" element={<Login />} />
+
+        {/* Protected App Layout */}
+        <Route
+          path="/"
+          element={
+            <MainLayout>
+              <Dashboard />
+            </MainLayout>
+          }
+        />
+
+        <Route
+          path="/appointments"
+          element={
+            <MainLayout>
+              <Appointments />
+            </MainLayout>
+          }
+        />
+
+        <Route
+          path="/patients"
+          element={
+            <MainLayout>
+              <Patients />
+            </MainLayout>
+          }
+        />
+
+        <Route
+          path="/doctors"
+          element={
+            <MainLayout>
+              <Doctors />
+            </MainLayout>
+          }
+        />
+
+        <Route
+          path="/settings"
+          element={
+            <MainLayout>
+              <Settings />
+            </MainLayout>
+          }
+        />
+      </Routes>
+    </Router>
+  );
+}
