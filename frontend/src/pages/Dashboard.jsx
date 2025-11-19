@@ -1,4 +1,5 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import { 
   FaUserInjured, 
   FaCalendarCheck, 
@@ -22,7 +23,7 @@ import {
   Legend
 } from 'recharts';
 
-// --- MOCK DATA ---
+// --- MOCK DATA START ---
 const statsData = [
   { title: 'Total Patients', value: '1,245', icon: <FaUserInjured />, color: 'bg-blue-500', trend: '+12%', isUp: true },
   { title: 'Appointments', value: '86', icon: <FaCalendarCheck />, color: 'bg-green-500', trend: '+5%', isUp: true },
@@ -53,18 +54,25 @@ const recentAppointments = [
   { id: 3, patient: 'Charlie Brown', doctor: 'Dr. Watson', date: '2023-10-23', status: 'Cancelled', statusColor: 'text-red-500 bg-red-100' },
   { id: 4, patient: 'Diana Prince', doctor: 'Dr. Strange', date: '2023-10-22', status: 'Completed', statusColor: 'text-green-500 bg-green-100' },
 ];
+// --- MOCK DATA END ---
 
 const Dashboard = () => {
+  const navigate = useNavigate();
+
   return (
     <div className="space-y-6">
-      {/* Header */}
+      {/* Header Section */}
       <div className="flex flex-col md:flex-row justify-between items-center">
         <div>
           <h1 className="text-2xl font-bold text-gray-800">Dashboard Overview</h1>
           <p className="text-gray-500 text-sm">Welcome back, here is what's happening today.</p>
         </div>
-        <button className="mt-4 md:mt-0 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg shadow-lg shadow-blue-600/30 transition-all text-sm font-medium">
-          + New Appointment
+        {/* Functional Button -> Redirects to Appointments Page */}
+        <button 
+          onClick={() => navigate('/appointments')} 
+          className="mt-4 md:mt-0 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg shadow-lg shadow-blue-600/30 transition-all text-sm font-medium flex items-center gap-2"
+        >
+          <FaCalendarCheck /> New Appointment
         </button>
       </div>
 
@@ -94,7 +102,7 @@ const Dashboard = () => {
 
       {/* Charts Section */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Main Area Chart */}
+        {/* Main Area Chart (Patient Trends) */}
         <div className="lg:col-span-2 bg-white rounded-xl shadow-sm border border-gray-100 p-6">
           <h2 className="text-lg font-bold text-gray-800 mb-4">Patient Statistics</h2>
           <div className="h-72">
@@ -118,7 +126,7 @@ const Dashboard = () => {
           </div>
         </div>
 
-        {/* Pie Chart */}
+        {/* Pie Chart (Appointment Status) */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
           <h2 className="text-lg font-bold text-gray-800 mb-4">Appointment Status</h2>
           <div className="h-64">
@@ -152,7 +160,12 @@ const Dashboard = () => {
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
         <div className="p-6 border-b border-gray-100 flex justify-between items-center">
           <h2 className="text-lg font-bold text-gray-800">Recent Appointments</h2>
-          <button className="text-blue-500 hover:text-blue-600 text-sm font-medium">View All</button>
+          <button 
+            onClick={() => navigate('/appointments')}
+            className="text-blue-500 hover:text-blue-600 text-sm font-medium transition-colors"
+          >
+            View All
+          </button>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">

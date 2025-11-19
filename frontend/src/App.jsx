@@ -2,19 +2,14 @@ import React from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 
-// Layouts
 import Login from './pages/Login';
 import MainLayout from './components/layout/MainLayout';
+import Dashboard from './pages/Dashboard';
+import Appointments from './pages/Appointments';
+import Patients from './pages/Patients';
+import Doctors from './pages/Doctors'; // <--- 1. Import
+import Settings from './pages/Settings'; // <--- 2. Import
 
-// --- IMPORT THE REAL DASHBOARD HERE ---
-import Dashboard from './pages/Dashboard'; // <--- Make sure this line exists
-import Appointments from './pages/Appointments'; // <--- Import Appointments too
-
-// --- DELETE THESE OLD LINES IF THEY EXIST ---
-// const Dashboard = () => <h1...>Dashboard Overview</h1>;  <--- DELETE THIS
-// const Appointments = () => <h1...>Appointments...</h1>;  <--- DELETE THIS
-
-// Protected Route Component
 const ProtectedRoute = ({ children }) => {
   const { token, loading } = useAuth();
   if (loading) return <div>Loading...</div>;
@@ -35,6 +30,9 @@ function App() {
           <Route index element={<Navigate to="/dashboard" replace />} />
           <Route path="dashboard" element={<Dashboard />} />
           <Route path="appointments" element={<Appointments />} />
+          <Route path="patients" element={<Patients />} />
+          <Route path="doctors" element={<Doctors />} />   {/* <--- 3. Add Route */}
+          <Route path="settings" element={<Settings />} /> {/* <--- 4. Add Route */}
         </Route>
       </Routes>
     </AuthProvider>
