@@ -44,7 +44,7 @@ const Login = () => {
             >
               <FaUserMd className="text-3xl text-blue-500" />
             </motion.div>
-            <h2 className="text-2xl font-bold text-white">Waheed Intl Hospital</h2>
+            <h2 className="text-2xl font-bold text-white">Smart Clinic</h2>
             <p className="text-gray-400 text-sm">Sign in to access your dashboard</p>
           </div>
 
