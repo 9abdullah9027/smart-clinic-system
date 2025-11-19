@@ -16,6 +16,7 @@ export default function AppRoutes() {
       <Routes>
         {/* Public Route */}
         <Route path="/login" element={<Login />} />
+        <Route path="/dashboard" element={<Dashboard />} />
 
         {/* Protected App Layout */}
         <Route

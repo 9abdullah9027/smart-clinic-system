@@ -1,65 +1,68 @@
-import React from "react";
+// src/pages/Login.jsx
+import React, { useState } from "react";
+import { motion } from "framer-motion";
 
 const Login = () => {
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+
+  const handleLogin = (e) => {
+    e.preventDefault();
+    // Placeholder for future login logic
+    console.log("Email:", email, "Password:", password);
+  };
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-100">
-
-      {/* Login Card */}
-      <div className="bg-white w-full max-w-md p-10 rounded-xl shadow-lg border border-gray-200">
-        
-        {/* Title */}
-        <h1 className="text-2xl font-semibold text-gray-800 text-center">
-          Smart Clinic Admin
-        </h1>
-        <p className="text-center text-gray-500 mt-2 mb-8">
-          Sign in to access your dashboard
-        </p>
-
-        <form className="space-y-5">
-
-          {/* Email */}
+      <motion.div
+        initial={{ opacity: 0, y: -50 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.6, ease: "easeOut" }}
+        className="bg-white rounded-lg shadow-lg p-8 w-full max-w-md"
+      >
+        <h2 className="text-2xl font-bold text-gray-800 mb-6 text-center">
+          Smart Hospital System
+        </h2>
+        <form onSubmit={handleLogin} className="space-y-4">
           <div>
-            <label className="block text-gray-700 font-medium mb-1">Email</label>
+            <label className="block text-gray-700 mb-2" htmlFor="email">
+              Email
+            </label>
             <input
               type="email"
-              placeholder="admin@example.com"
-              className="w-full px-4 py-3 rounded-lg bg-gray-50 border border-gray-300 
-                         text-gray-800 placeholder-gray-500
-                         focus:outline-none focus:ring-2 focus:ring-gray-400"
+              id="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+              placeholder="Enter your email"
+              className="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             />
           </div>
-
-          {/* Password */}
           <div>
-            <label className="block text-gray-700 font-medium mb-1">Password</label>
+            <label className="block text-gray-700 mb-2" htmlFor="password">
+              Password
+            </label>
             <input
               type="password"
-              placeholder="••••••••"
-              className="w-full px-4 py-3 rounded-lg bg-gray-50 border border-gray-300
-                         text-gray-800 placeholder-gray-500
-                         focus:outline-none focus:ring-2 focus:ring-gray-400"
+              id="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+              placeholder="Enter your password"
+              className="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             />
           </div>
-
-          {/* Login Button */}
           <button
             type="submit"
-            className="w-full py-3 rounded-lg bg-gray-800 text-white font-medium
-                       hover:bg-gray-900 transition-all"
+            className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-md font-semibold transition-colors duration-300"
           >
             Login
           </button>
         </form>
-
-        {/* Footer */}
-        <p className="text-center text-gray-600 text-sm mt-6">
-          Forgot password?{" "}
-          <span className="text-gray-900 font-medium cursor-pointer hover:underline">
-            Reset here
-          </span>
+        <p className="mt-4 text-sm text-center text-gray-500">
+          Forgot your password? <span className="text-blue-600 hover:underline cursor-pointer">Reset here</span>
         </p>
-      </div>
-
+      </motion.div>
     </div>
   );
 };
