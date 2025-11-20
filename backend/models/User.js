@@ -2,14 +2,30 @@ const mongoose = require("mongoose");
 const bcrypt = require("bcryptjs");
 
 const userSchema = new mongoose.Schema({
+  // Login Info
   name: { type: String, required: true, trim: true },
   email: { type: String, required: true, unique: true, lowercase: true },
   password: { type: String, required: true, minlength: 6 },
-  dob: { type: Date },
   role: { type: String, enum: ["patient", "doctor", "admin"], default: "patient" },
   
-  // --- NEW FIELD ---
-  specialization: { type: String, default: "General Practitioner" } 
+  // New Personal Data
+  fatherName: { type: String },
+  gender: { type: String, enum: ["Male", "Female", "Other"] },
+  nationalId: { type: String }, // CNIC
+  phone: { type: String },
+  address: { type: String },
+  dob: { type: Date },
+  
+  emergencyContact: {
+    name: { type: String },
+    phone: { type: String }
+  },
+
+  // Doctor Specific
+  specialization: { type: String },
+  
+  // MRN (Auto Generated)
+  mrn: { type: String, unique: true, sparse: true } 
 }, { timestamps: true });
 
 // Hash password

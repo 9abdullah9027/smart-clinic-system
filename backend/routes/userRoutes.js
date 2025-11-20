@@ -5,7 +5,9 @@ const {
   getDoctors, 
   UserProfile, 
   updateUserProfile,
-  createStaff 
+  createStaff ,
+  fixMrns,
+  deleteUser // <----- 1. Import
 } = require("../controllers/userController");
 
 const { protect } = require("../middleware/authMiddleware"); 
@@ -19,5 +21,8 @@ router.put("/profile", protect, updateUserProfile);
 
 // New Route: Create Staff (Admin Only)
 router.post("/staff", protect, roleCheck("admin"), createStaff);
+
+// 2. Delete User Route (Admin Only)
+router.delete("/:id", protect, roleCheck("admin"), deleteUser);
 
 module.exports = router;

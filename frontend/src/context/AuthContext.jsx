@@ -56,24 +56,15 @@ export const AuthProvider = ({ children }) => {
   };
 
   // --- REGISTER (UPDATED WITH DOB) ---
-  const register = async (name, email, password, role, dob) => {
+ const register = async (name, email, password, role, dob, extraData = {}) => {
     try {
-      // We allow 'role' to be passed (for Admin creating Doctors), 
-      // but for public registration, the backend will force 'patient' anyway.
       await api.post('/auth/register', { 
-        name, 
-        email, 
-        password, 
-        role, // Optional
-        dob   // <--- CRITICAL FIX: Sending DOB to backend
+        name, email, password, role, dob,
+        ...extraData // Spreads fatherName, gender, nationalId, etc.
       });
       return { success: true };
     } catch (error) {
-      console.error("Register Error:", error.response?.data);
-      return { 
-        success: false, 
-        message: error.response?.data?.message || 'Registration failed' 
-      };
+      // ... existing error handling
     }
   };
 

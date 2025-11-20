@@ -11,6 +11,7 @@ import Patients from './pages/Patients';
 import Doctors from './pages/Doctors';
 import Reports from './pages/Reports';
 import Settings from './pages/Settings';
+import PatientProfile from './pages/PatientProfile'; // Import
 
 const ProtectedRoute = ({ children }) => {
   const { token, loading } = useAuth();
@@ -40,6 +41,7 @@ function App() {
           <Route path="doctors" element={<Doctors />} />
           <Route path="reports" element={<Reports />} />
           <Route path="settings" element={<Settings />} />
+          <Route path="patients/:id" element={<PatientProfile />} />
         </Route>
       </Routes>
     </AuthProvider>

@@ -12,6 +12,8 @@ const appointmentRoutes = require("./routes/appointmentRoutes");
 const userRoutes = require("./routes/userRoutes");         // <--- NEW
 const dashboardRoutes = require("./routes/dashboardRoutes"); // <--- NEW
 const notificationRoutes = require("./routes/notificationRoutes"); // Import
+const historyRoutes = require("./routes/historyRoutes"); // Import
+const profileRoutes = require("./routes/profileRoutes"); // Import
 
 dotenv.config();
 
@@ -35,6 +37,8 @@ app.use("/api/users", userRoutes);           // <--- NEW
 app.use("/api/dashboard", dashboardRoutes);  // <--- NEW
 app.use("/api/reports", reportRoutes); // 4. Register Route
 app.use("/api/notifications", notificationRoutes); // Register
+app.use("/api/history", historyRoutes); // Register
+app.use("/api/patient-profile", profileRoutes); // Register
 
 // Test Route
 app.get("/", (req, res) => {
