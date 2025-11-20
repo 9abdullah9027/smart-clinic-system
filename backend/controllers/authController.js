@@ -1,5 +1,5 @@
 const User = require("../models/User");
-const Counter = require("../models/Counter"); // <--- Import Counter
+const Counter = require("../models/Counter"); // <--- Make sure this import exists
 const jwt = require("jsonwebtoken");
 
 exports.registerUser = async (req, res) => {

@@ -1,10 +1,12 @@
 const MedicalHistory = require("../models/MedicalHistory");
+const PatientProfile = require("../models/PatientProfile"); // <--- 1. Import Profile Model
 
 // 1. Add Record (Doctor Only)
 exports.addRecord = async (req, res) => {
   try {
     const { patientId, diagnosis, prescription, notes } = req.body;
 
+    // A. Create the Medical History Record
     const record = new MedicalHistory({
       patient: patientId,
       doctor: req.user._id,
@@ -14,7 +16,17 @@ exports.addRecord = async (req, res) => {
     });
 
     await record.save();
-    await record.populate("doctor", "name"); // Return doctor name immediately
+    await record.populate("doctor", "name specialization");
+
+    // B. AUTOMATICALLY UPDATE VISIT COUNT & LAST VISIT DATE
+    await PatientProfile.findOneAndUpdate(
+      { patient: patientId },
+      { 
+        $inc: { previousVisitsCount: 1 }, // Increment count by 1
+        $set: { lastVisitDate: new Date() } // Set last visit to NOW
+      },
+      { new: true, upsert: true } // Create profile if missing
+    );
 
     res.status(201).json({ message: "Record added", record });
   } catch (error) {
@@ -22,12 +34,11 @@ exports.addRecord = async (req, res) => {
   }
 };
 
-// 2. Get History for a Patient (Doctors + Patient themselves)
+// 2. Get History for a Patient
 exports.getPatientHistory = async (req, res) => {
   try {
     const { patientId } = req.params;
 
-    // Security: Patients can only view their own
     if (req.user.role === 'patient' && req.user._id.toString() !== patientId) {
       return res.status(403).json({ message: "Access denied" });
     }

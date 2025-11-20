@@ -1,31 +1,41 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, useAnimation } from 'framer-motion';
 import { 
   FaUserMd, FaEnvelope, FaLock, FaUser, FaCalendarAlt, 
   FaSmile, FaFrown, FaShieldAlt, FaArrowLeft, FaCheck, 
-  FaPhone, FaIdCard, FaMapMarkerAlt, FaUserFriends
+  FaPhone, FaIdCard, FaMapMarkerAlt, FaUserFriends, FaExclamationCircle
 } from 'react-icons/fa';
 import { useAuth } from '../context/AuthContext';
 
 const Login = () => {
   const [isLogin, setIsLogin] = useState(true);
   
-  // Expanded Form State
+  // Form State
   const [formData, setFormData] = useState({ 
     name: '', email: '', password: '', dob: '',
     fatherName: '', gender: 'Male', nationalId: '', phone: '', address: '',
     emergencyName: '', emergencyPhone: ''
   });
 
+  // Validation & UI State
+  const [fieldErrors, setFieldErrors] = useState({});
   const [error, setError] = useState('');
   const [showSuccess, setShowSuccess] = useState(false);
   const [passStrength, setPassStrength] = useState({ score: 0, message: '', color: 'text-gray-400' });
   
+  // Hooks
   const { login, register, loading } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+  const controls = useAnimation(); 
 
+  // --- FIX: TRIGGER ENTRY ANIMATION ON LOAD ---
+  useEffect(() => {
+    controls.start({ opacity: 1, y: 0, transition: { duration: 0.5 } });
+  }, [controls]);
+
+  // Auto-switch to Register if directed from Landing Page
   useEffect(() => {
     if (location.state?.mode === 'register') setIsLogin(false);
   }, [location]);
@@ -50,6 +60,32 @@ const Login = () => {
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
+    if (fieldErrors[e.target.name]) {
+      setFieldErrors({ ...fieldErrors, [e.target.name]: false });
+    }
+  };
+
+  const triggerShake = async () => {
+    await controls.start({ x: -10, transition: { duration: 0.1 } });
+    await controls.start({ x: 10, transition: { duration: 0.1 } });
+    await controls.start({ x: -10, transition: { duration: 0.1 } });
+    await controls.start({ x: 10, transition: { duration: 0.1 } });
+    await controls.start({ x: 0, transition: { duration: 0.1 } });
+  };
+
+  const validateForm = () => {
+    const errors = {};
+    let isValid = true;
+    const requiredFields = ['name', 'fatherName', 'dob', 'nationalId', 'phone', 'email', 'address', 'emergencyName', 'emergencyPhone', 'password'];
+
+    requiredFields.forEach(field => {
+      if (!formData[field] || !formData[field].trim()) {
+        errors[field] = true;
+        isValid = false;
+      }
+    });
+    setFieldErrors(errors);
+    return isValid;
   };
 
   const handleSubmit = async (e) => {
@@ -57,21 +93,33 @@ const Login = () => {
     setError('');
 
     if (isLogin) {
+      if (!formData.email || !formData.password) {
+        setError("Please enter email and password.");
+        triggerShake();
+        return;
+      }
       const result = await login(formData.email, formData.password);
       if (result.success) navigate('/dashboard');
-      else setError(result.message);
+      else {
+        setError(result.message);
+        triggerShake();
+      }
     } else {
+      if (!validateForm()) {
+        setError("Please fill in all required fields.");
+        triggerShake();
+        return;
+      }
+
       if (passStrength.score < 4) {
-        setError("Password is too weak. Use 8+ chars, numbers & symbols.");
+        setError("Password is too weak. Use 8+ chars, uppercase, number & symbol.");
+        triggerShake();
         return;
       }
       
-      // Send all new fields to AuthContext -> Backend
       const result = await register(
         formData.name, formData.email, formData.password, undefined, formData.dob,
-        { // Pass extra fields as an object if your AuthContext supports it, 
-          // OR update AuthContext to accept one big object. 
-          // *CRITICAL*: Ensure your AuthContext 'register' function spreads these correctly!
+        { 
           fatherName: formData.fatherName,
           gender: formData.gender,
           nationalId: formData.nationalId,
@@ -91,18 +139,24 @@ const Login = () => {
         setTimeout(() => { setShowSuccess(false); setIsLogin(true); }, 3000);
       } else {
         setError(result.message);
+        triggerShake();
       }
     }
   };
 
+  const getInputClass = (fieldName) => {
+    const base = "w-full bg-gray-900/50 border rounded-lg py-3 pl-10 focus:outline-none transition-colors";
+    if (fieldErrors[fieldName]) return `${base} border-red-500 text-white focus:border-red-500 placeholder-red-300`;
+    return `${base} border-gray-600 text-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500`;
+  };
+
   return (
     <div className="min-h-screen bg-gray-900 flex items-center justify-center px-4 py-10 relative overflow-y-auto">
-      
       <Link to="/" className="absolute top-6 left-6 z-20 flex items-center gap-2 text-gray-400 hover:text-white transition-colors font-medium text-sm">
         <FaArrowLeft /> Back to Home
       </Link>
 
-      {/* Background Blobs */}
+      {/* Background */}
       <div className="fixed top-0 left-0 w-full h-full overflow-hidden z-0 pointer-events-none">
         <div className="absolute top-10 left-10 w-32 h-32 bg-blue-600 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-blob"></div>
         <div className="absolute top-10 right-10 w-32 h-32 bg-purple-600 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-blob animation-delay-2000"></div>
@@ -110,7 +164,7 @@ const Login = () => {
 
       <motion.div 
         initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
+        animate={controls} // FIX: This was blocking visibility without the useEffect above
         className={`w-full bg-gray-800 border border-gray-700 rounded-2xl shadow-2xl overflow-hidden z-10 relative ${isLogin ? 'max-w-md' : 'max-w-2xl'}`}
       >
         <div className="p-8">
@@ -123,80 +177,74 @@ const Login = () => {
             </h2>
           </div>
 
-          {error && <div className="mb-4 p-3 bg-red-500/10 border border-red-500/50 text-red-500 text-sm rounded text-center">{error}</div>}
+          {error && (
+            <div className="mb-6 p-3 bg-red-500/10 border border-red-500/50 text-red-400 text-sm rounded flex items-center justify-center gap-2">
+              <FaExclamationCircle /> {error}
+            </div>
+          )}
 
-          <form onSubmit={handleSubmit} className="space-y-4">
-            
-            {/* --- REGISTER FORM (Expanded) --- */}
+          <form onSubmit={handleSubmit} className="space-y-4" noValidate>
             {!isLogin && (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-white">
                 {/* Personal Info */}
                 <div className="space-y-4">
                   <h3 className="text-gray-400 text-sm font-bold border-b border-gray-700 pb-1">Personal Details</h3>
-                  
                   <div className="relative">
                     <FaUser className="absolute left-3 top-3.5 text-gray-500" />
-                    <input type="text" name="name" placeholder="Full Name" value={formData.name} onChange={handleChange} required className="w-full bg-gray-900/50 border border-gray-600 rounded-lg py-3 pl-10 focus:ring-2 focus:ring-blue-500 outline-none" />
+                    <input type="text" name="name" placeholder="Full Name *" value={formData.name} onChange={handleChange} className={getInputClass('name')} />
                   </div>
-
                   <div className="relative">
                     <FaUserFriends className="absolute left-3 top-3.5 text-gray-500" />
-                    <input type="text" name="fatherName" placeholder="Father/Guardian Name" value={formData.fatherName} onChange={handleChange} className="w-full bg-gray-900/50 border border-gray-600 rounded-lg py-3 pl-10 focus:ring-2 focus:ring-blue-500 outline-none" />
+                    <input type="text" name="fatherName" placeholder="Father/Guardian Name *" value={formData.fatherName} onChange={handleChange} className={getInputClass('fatherName')} />
                   </div>
-
                   <div className="grid grid-cols-2 gap-2">
                     <div className="relative">
                       <FaCalendarAlt className="absolute left-3 top-3.5 text-gray-500" />
-                      <input type="date" name="dob" value={formData.dob} onChange={handleChange} required className="w-full bg-gray-900/50 border border-gray-600 rounded-lg py-3 pl-10 focus:ring-2 focus:ring-blue-500 outline-none text-gray-300" />
+                      <input type="date" name="dob" value={formData.dob} onChange={handleChange} className={`${getInputClass('dob')} text-gray-300`} />
                     </div>
                     <select name="gender" value={formData.gender} onChange={handleChange} className="bg-gray-900/50 border border-gray-600 rounded-lg py-3 px-2 text-gray-300 focus:ring-2 focus:ring-blue-500 outline-none">
                       <option>Male</option><option>Female</option><option>Other</option>
                     </select>
                   </div>
-
                   <div className="relative">
                     <FaIdCard className="absolute left-3 top-3.5 text-gray-500" />
-                    <input type="text" name="nationalId" placeholder="National ID / CNIC" value={formData.nationalId} onChange={handleChange} className="w-full bg-gray-900/50 border border-gray-600 rounded-lg py-3 pl-10 focus:ring-2 focus:ring-blue-500 outline-none" />
+                    <input type="text" name="nationalId" placeholder="National ID / CNIC *" value={formData.nationalId} onChange={handleChange} className={getInputClass('nationalId')} />
                   </div>
                 </div>
 
                 {/* Contact Info */}
                 <div className="space-y-4">
                   <h3 className="text-gray-400 text-sm font-bold border-b border-gray-700 pb-1">Contact Info</h3>
-                  
                   <div className="relative">
                     <FaPhone className="absolute left-3 top-3.5 text-gray-500" />
-                    <input type="tel" name="phone" placeholder="Phone Number" value={formData.phone} onChange={handleChange} required className="w-full bg-gray-900/50 border border-gray-600 rounded-lg py-3 pl-10 focus:ring-2 focus:ring-blue-500 outline-none" />
+                    <input type="tel" name="phone" placeholder="Phone Number *" value={formData.phone} onChange={handleChange} className={getInputClass('phone')} />
                   </div>
-
                   <div className="relative">
                     <FaEnvelope className="absolute left-3 top-3.5 text-gray-500" />
-                    <input type="email" name="email" placeholder="Email Address" value={formData.email} onChange={handleChange} required className="w-full bg-gray-900/50 border border-gray-600 rounded-lg py-3 pl-10 focus:ring-2 focus:ring-blue-500 outline-none" />
+                    <input type="email" name="email" placeholder="Email Address *" value={formData.email} onChange={handleChange} className={getInputClass('email')} />
                   </div>
-
                   <div className="relative">
                     <FaMapMarkerAlt className="absolute left-3 top-3.5 text-gray-500" />
-                    <input type="text" name="address" placeholder="Home Address" value={formData.address} onChange={handleChange} className="w-full bg-gray-900/50 border border-gray-600 rounded-lg py-3 pl-10 focus:ring-2 focus:ring-blue-500 outline-none" />
+                    <input type="text" name="address" placeholder="Home Address *" value={formData.address} onChange={handleChange} className={getInputClass('address')} />
                   </div>
-                  
                   <div className="grid grid-cols-2 gap-2">
-                    <input type="text" name="emergencyName" placeholder="Emergency Contact Name" value={formData.emergencyName} onChange={handleChange} className="bg-gray-900/50 border border-gray-600 rounded-lg py-3 px-3 text-sm focus:ring-2 focus:ring-blue-500 outline-none" />
-                    <input type="tel" name="emergencyPhone" placeholder="Emerg. Phone" value={formData.emergencyPhone} onChange={handleChange} className="bg-gray-900/50 border border-gray-600 rounded-lg py-3 px-3 text-sm focus:ring-2 focus:ring-blue-500 outline-none" />
+                    <input type="text" name="emergencyName" placeholder="Emerg. Name *" value={formData.emergencyName} onChange={handleChange} className={getInputClass('emergencyName').replace('pl-10', 'px-3 text-sm')} />
+                    <input type="tel" name="emergencyPhone" placeholder="Emerg. Phone *" value={formData.emergencyPhone} onChange={handleChange} className={getInputClass('emergencyPhone').replace('pl-10', 'px-3 text-sm')} />
                   </div>
                 </div>
               </div>
             )}
 
-            {/* --- LOGIN FORM (Simple) --- */}
+            {/* LOGIN FIELDS */}
             {isLogin && (
               <div className="space-y-4">
                 <div className="relative">
                   <FaEnvelope className="absolute left-3 top-3.5 text-gray-500" />
-                  <input type="email" name="email" placeholder="Email Address" value={formData.email} onChange={handleChange} required className="w-full bg-gray-900/50 border border-gray-600 text-white rounded-lg py-3 pl-10 focus:ring-2 focus:ring-blue-500 outline-none" />
+                  <input type="email" name="email" placeholder="Email Address" value={formData.email} onChange={handleChange} className={getInputClass('email')} />
                 </div>
                 <div className="relative">
                   <FaLock className="absolute left-3 top-3.5 text-gray-500" />
-                  <input type="password" name="password" placeholder="Password" value={formData.password} onChange={handleChange} required className="w-full bg-gray-900/50 border border-gray-600 text-white rounded-lg py-3 pl-10 focus:ring-2 focus:ring-blue-500 outline-none" />
+                  <input type="password" name="password" placeholder="Password" value={formData.password} onChange={handleChange} className={getInputClass('password')} />
                 </div>
               </div>
             )}
@@ -206,7 +254,7 @@ const Login = () => {
               <div className="space-y-4 mt-4">
                 <div className="relative">
                   <FaLock className="absolute left-3 top-3.5 text-gray-500" />
-                  <input type="password" name="password" placeholder="Create Password" value={formData.password} onChange={handleChange} required className="w-full bg-gray-900/50 border border-gray-600 text-white rounded-lg py-3 pl-10 focus:ring-2 focus:ring-blue-500 outline-none" />
+                  <input type="password" name="password" placeholder="Create Password *" value={formData.password} onChange={handleChange} className={getInputClass('password')} />
                 </div>
                 <div className="flex items-center justify-between bg-gray-900/50 p-3 rounded-lg border border-gray-700">
                   <div className="flex flex-col">
@@ -220,7 +268,7 @@ const Login = () => {
               </div>
             )}
 
-            <button type="submit" disabled={loading} className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-lg transition-all mt-6">
+            <button type="submit" disabled={loading} className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-lg transition-all mt-6 transform active:scale-95">
               {loading ? 'Processing...' : (isLogin ? 'Sign In' : 'Create Account')}
             </button>
           </form>
@@ -247,7 +295,7 @@ const Login = () => {
             <motion.div initial={{ scale: 0.5, opacity: 0, y: 50 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.5, opacity: 0, y: 50 }} transition={{ type: "spring", damping: 15 }} className="bg-white rounded-3xl p-8 max-w-sm w-full text-center shadow-2xl m-4">
               <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ delay: 0.2, type: "spring", stiffness: 200 }} className="w-24 h-24 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6"><FaCheck className="text-5xl text-green-500" /></motion.div>
               <h3 className="text-2xl font-bold text-gray-800 mb-2">Account Created!</h3>
-              <p className="text-gray-500 mb-6">Welcome to Smart Clinic. <br/> Your MRN has been generated.</p>
+              <p className="text-gray-500 mb-6">Redirecting...</p>
               <div className="w-full bg-gray-100 rounded-full h-2 overflow-hidden"><motion.div initial={{ width: 0 }} animate={{ width: "100%" }} transition={{ duration: 3, ease: "linear" }} className="h-full bg-green-500" /></div>
             </motion.div>
           </motion.div>

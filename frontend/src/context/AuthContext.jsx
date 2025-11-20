@@ -55,16 +55,27 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  // --- REGISTER (UPDATED WITH DOB) ---
- const register = async (name, email, password, role, dob, extraData = {}) => {
+  // --- REGISTER ---
+  const register = async (name, email, password, role, dob, extraData = {}) => {
     try {
-      await api.post('/auth/register', { 
-        name, email, password, role, dob,
-        ...extraData // Spreads fatherName, gender, nationalId, etc.
-      });
+      // We use spread operator (...) to combine main fields with extraData (fatherName, phone, etc.)
+      const payload = { 
+        name, 
+        email, 
+        password, 
+        role, 
+        dob,
+        ...extraData 
+      };
+
+      console.log("Sending Payload:", payload); // Debugging
+
+      await api.post('/auth/register', payload);
       return { success: true };
     } catch (error) {
-      // ... existing error handling
+      const msg = error.response?.data?.message || error.message || "Registration failed";
+      console.error("Register Error:", msg);
+      return { success: false, message: msg };
     }
   };
 
@@ -76,11 +87,18 @@ export const AuthProvider = ({ children }) => {
     setUser(null);
   };
 
-  return (
-    <AuthContext.Provider value={{ user, token, login, register, logout, loading, api }}>
-      {children}
-    </AuthContext.Provider>
-  );
+  // Expose everything to the app
+  const value = {
+    user,
+    token,
+    login,
+    register,
+    logout,
+    loading,
+    api
+  };
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
 
 export const useAuth = () => useContext(AuthContext);
