@@ -34,7 +34,7 @@ exports.UserProfile = async (req, res) => {
   }
 };
 
-// 4. UPDATE User Profile (This was likely missing or broken)
+// 4. UPDATE User Profile
 exports.updateUserProfile = async (req, res) => {
   try {
     const user = await User.findById(req.user._id);
@@ -43,6 +43,11 @@ exports.updateUserProfile = async (req, res) => {
       user.name = req.body.name || user.name;
       user.email = req.body.email || user.email;
       
+      // Update Specialization (Only affects Doctors)
+      if (req.body.specialization) {
+        user.specialization = req.body.specialization;
+      }
+
       if (req.body.password) {
         user.password = req.body.password; 
       }
@@ -54,11 +59,44 @@ exports.updateUserProfile = async (req, res) => {
         name: updatedUser.name,
         email: updatedUser.email,
         role: updatedUser.role,
+        specialization: updatedUser.specialization,
         message: "Profile updated successfully"
       });
     } else {
       res.status(404).json({ message: "User not found" });
     }
+  } catch (error) {
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+};
+
+// 5. Create Staff (Admin Only)
+exports.createStaff = async (req, res) => {
+  try {
+    const { name, email, password, role } = req.body;
+
+    // Validate role (Must be doctor or admin)
+    if (role !== 'doctor' && role !== 'admin') {
+      return res.status(400).json({ message: "Invalid role for staff" });
+    }
+
+    const existingUser = await User.findOne({ email });
+    if (existingUser) {
+      return res.status(400).json({ message: "User already exists" });
+    }
+
+    // Create user with the specific role
+    const user = new User({ 
+      name, 
+      email, 
+      password, 
+      role,
+      dob: new Date() // Default DOB for staff
+    });
+    
+    await user.save();
+
+    res.status(201).json({ message: `${role} created successfully` });
   } catch (error) {
     res.status(500).json({ message: "Server error", error: error.message });
   }

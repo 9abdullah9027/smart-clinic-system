@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useAuth } from '../context/AuthContext'; // Import API
+import { useAuth } from '../context/AuthContext';
 import { 
-  FaSearch, FaPlus, FaUser, FaEnvelope, FaPhone, FaTimes, FaSpinner
+  FaSearch, FaPlus, FaUser, FaEnvelope, FaTimes, FaSpinner, FaCalendarAlt
 } from 'react-icons/fa';
 
 const Patients = () => {
@@ -11,12 +11,9 @@ const Patients = () => {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [showModal, setShowModal] = useState(false);
-  
-  // New Patient Form State
-  const [newPatient, setNewPatient] = useState({ name: '', email: '', password: 'password123' });
+  const [newPatient, setNewPatient] = useState({ name: '', email: '', password: 'password123', dob: '' });
   const [submitting, setSubmitting] = useState(false);
 
-  // Fetch Patients from API
   useEffect(() => {
     const fetchPatients = async () => {
       try {
@@ -31,21 +28,15 @@ const Patients = () => {
     fetchPatients();
   }, [api]);
 
-  // Register New Patient
   const handleAddPatient = async (e) => {
     e.preventDefault();
     setSubmitting(true);
     try {
-      // We use the auth/register endpoint to create a user with role="patient"
       await api.post('/auth/register', { ...newPatient, role: 'patient' });
-      
-      // Refresh list locally (simplified)
-      // Ideally, we should fetch again or get the new user from response
       const res = await api.get('/users/patients'); 
       setPatients(res.data);
-      
       setShowModal(false);
-      setNewPatient({ name: '', email: '', password: 'password123' });
+      setNewPatient({ name: '', email: '', password: 'password123', dob: '' });
     } catch (err) {
       alert(err.response?.data?.message || "Failed to register patient");
     } finally {
@@ -62,7 +53,6 @@ const Patients = () => {
 
   return (
     <div className="space-y-6 relative">
-      {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
         <div>
           <h1 className="text-2xl font-bold text-gray-800">Patient Registry</h1>
@@ -73,7 +63,6 @@ const Patients = () => {
         </button>
       </div>
 
-      {/* Search */}
       <div className="relative">
         <FaSearch className="absolute left-4 top-3.5 text-gray-400" />
         <input type="text" placeholder="Search by name or email..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)}
@@ -81,7 +70,6 @@ const Patients = () => {
         />
       </div>
 
-      {/* Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {filteredPatients.map((patient) => (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} key={patient._id}
@@ -90,18 +78,21 @@ const Patients = () => {
             <div className="w-16 h-16 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-2xl font-bold mb-4 uppercase">
               {patient.name.charAt(0)}
             </div>
-            <h3 className="font-bold text-gray-800">{patient.name}</h3>
-            <p className="text-gray-500 text-sm mb-4">{patient.email}</p>
+            <h3 className="font-bold text-gray-800 text-lg">{patient.name}</h3>
             
-            <div className="w-full pt-4 border-t border-gray-50 flex justify-between text-sm text-gray-400">
+            {/* EMAIL DISPLAY */}
+            <div className="bg-gray-50 px-3 py-1 rounded-full text-gray-600 text-sm mb-4 flex items-center gap-2">
+              <FaEnvelope className="text-gray-400" /> {patient.email}
+            </div>
+            
+            <div className="w-full pt-4 border-t border-gray-50 flex justify-between text-xs text-gray-400">
               <span className="flex items-center gap-1"><FaUser /> ID: ...{patient._id.slice(-4)}</span>
-              <span className="flex items-center gap-1"><FaEnvelope /> Email</span>
+              <span className="flex items-center gap-1"><FaCalendarAlt /> {patient.dob ? new Date(patient.dob).toLocaleDateString() : 'N/A'}</span>
             </div>
           </motion.div>
         ))}
       </div>
 
-      {/* Add Patient Modal */}
       <AnimatePresence>
         {showModal && (
           <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
@@ -111,23 +102,10 @@ const Patients = () => {
                 <button onClick={() => setShowModal(false)} className="text-gray-400 hover:text-red-500"><FaTimes /></button>
               </div>
               <form onSubmit={handleAddPatient} className="p-6 space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
-                  <input type="text" required className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
-                    value={newPatient.name} onChange={e => setNewPatient({...newPatient, name: e.target.value})} />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
-                  <input type="email" required className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
-                    value={newPatient.email} onChange={e => setNewPatient({...newPatient, email: e.target.value})} />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Default Password</label>
-                  <input type="text" readOnly value="password123" className="w-full p-2 border border-gray-300 rounded-lg bg-gray-100 text-gray-500" />
-                </div>
-                <button type="submit" disabled={submitting} className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-lg transition-colors">
-                  {submitting ? <FaSpinner className="animate-spin mx-auto"/> : 'Register Patient'}
-                </button>
+                <div><label className="block text-sm font-medium text-gray-700 mb-1">Full Name</label><input type="text" required className="w-full p-2 border border-gray-300 rounded-lg outline-none" value={newPatient.name} onChange={e => setNewPatient({...newPatient, name: e.target.value})} /></div>
+                <div><label className="block text-sm font-medium text-gray-700 mb-1">Email</label><input type="email" required className="w-full p-2 border border-gray-300 rounded-lg outline-none" value={newPatient.email} onChange={e => setNewPatient({...newPatient, email: e.target.value})} /></div>
+                <div><label className="block text-sm font-medium text-gray-700 mb-1">Date of Birth</label><input type="date" required className="w-full p-2 border border-gray-300 rounded-lg outline-none" value={newPatient.dob} onChange={e => setNewPatient({...newPatient, dob: e.target.value})} /></div>
+                <button type="submit" disabled={submitting} className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-lg transition-colors">{submitting ? <FaSpinner className="animate-spin mx-auto"/> : 'Register Patient'}</button>
               </form>
             </motion.div>
           </div>

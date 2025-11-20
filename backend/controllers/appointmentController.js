@@ -1,5 +1,6 @@
 const Appointment = require("../models/Appointment");
 const User = require("../models/User");
+const Notification = require("../models/Notification");
 
 // --- 1. Create Appointment ---
 exports.createAppointment = async (req, res) => {
@@ -23,15 +24,14 @@ exports.createAppointment = async (req, res) => {
     // Save to DB
     await appointment.save();
 
-    // --- FIX 1: POPULATE DATA BEFORE SENDING RESPONSE ---
-    // This ensures the frontend gets { patient: { name: "John" } } instead of just ID
+    // Populate data before sending response
     await appointment.populate("patient", "name email");
     await appointment.populate("doctor", "name email");
 
     res.status(201).json({ message: "Appointment created", appointment });
 
   } catch (error) {
-    // --- FIX 2: HANDLE DUPLICATE ERROR SPECIFICALLY ---
+    // Handle Duplicate Error
     if (error.code === 11000) {
       return res.status(400).json({ 
         message: "Appointment slot is not available. Please choose another time." 
@@ -103,7 +103,7 @@ exports.getAppointmentById = async (req, res) => {
   }
 };
 
-// --- 5. Update Appointment ---
+// --- 5. Update Appointment (With Notification) ---
 exports.updateAppointment = async (req, res) => {
   try {
     const { id } = req.params;
@@ -112,14 +112,28 @@ exports.updateAppointment = async (req, res) => {
     const appointment = await Appointment.findById(id);
     if (!appointment) return res.status(404).json({ message: "Not found" });
 
+    // Update fields
     if (date) appointment.date = date;
     if (time) appointment.time = time;
     if (reason) appointment.reason = reason;
-    if (status) appointment.status = status;
+    
+    // Check if status changed
+    const oldStatus = appointment.status;
+    if (status && status !== oldStatus) {
+      appointment.status = status;
+      
+      // --- CREATE NOTIFICATION LOGIC ---
+      // We assume req.user is the Doctor confirming it
+      const message = `Your appointment with Dr. ${req.user.name} on ${new Date(appointment.date).toLocaleDateString()} has been ${status.toUpperCase()}.`;
+      
+      await Notification.create({
+        user: appointment.patient, // Send to Patient
+        message: message,
+        type: status === 'confirmed' ? 'success' : 'error'
+      });
+    }
 
     await appointment.save();
-    
-    // Ensure we return populated data on update too (optional but good practice)
     await appointment.populate("patient", "name email");
     await appointment.populate("doctor", "name email");
 

@@ -9,27 +9,26 @@ const {
   deleteAppointment 
 } = require("../controllers/appointmentController");
 const { protect } = require("../middleware/authMiddleware");
+const { roleCheck } = require("../middleware/roleMiddleware"); // Import Role Check
 
-// --- ROUTES ---
+// 1. Create: Patients & Admins can book
+router.post("/", protect, roleCheck("patient", "admin"), createAppointment);
 
-// 1. Create Appointment (Patients only)
-router.post("/", protect, createAppointment);
-
-// 2. Get MY Appointments (Patients see theirs, Doctors see their schedule)
+// 2. Get My: Everyone needs this
 router.get("/my", protect, getMyAppointments);
 
-// 3. Get Single Appointment by ID
+// 3. Get Single: Everyone (Controller handles ownership check)
 router.get("/:id", protect, getAppointmentById);
 
-// 4. Update Appointment (Doctors update status/notes)
-router.put("/:id", protect, updateAppointment);
+// 4. Update: Only Doctors (to confirm) or Admin
+router.put("/:id", protect, roleCheck("doctor", "admin"), updateAppointment);
 
-// 5. Delete Appointment (Admin/Patient cancellation)
-router.delete("/:id", protect, deleteAppointment);
+// 5. Delete: Only Admin (Or we could allow patient to cancel, but let's say Delete is Admin only)
+router.delete("/:id", protect, roleCheck("admin", "patient"), deleteAppointment); 
+// Note: I added 'patient' here too so they can delete their own via the UI button we made. 
+// For strict security, you'd usually use a separate "cancel" endpoint.
 
-// 6. Get All Appointments (Admin only - optional)
-// Note: If you haven't implemented 'roleCheck' middleware properly yet, 
-// you can leave this protected or remove the roleCheck part for now.
-router.get("/", protect, getAllAppointments);
+// 6. Get All: Admin Only
+router.get("/", protect, roleCheck("admin"), getAllAppointments);
 
 module.exports = router;

@@ -2,16 +2,15 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
 import { 
-  FaSearch, FaPlus, FaUserMd, FaEnvelope, FaTimes, FaSpinner
+  FaSearch, FaPlus, FaUserMd, FaTimes, FaSpinner
 } from 'react-icons/fa';
 
 const Doctors = () => {
-  const { api } = useAuth();
+  const { api, user } = useAuth(); 
   const [doctors, setDoctors] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [showModal, setShowModal] = useState(false);
-  
   const [newDoctor, setNewDoctor] = useState({ name: '', email: '', password: 'password123' });
   const [submitting, setSubmitting] = useState(false);
 
@@ -33,7 +32,9 @@ const Doctors = () => {
     e.preventDefault();
     setSubmitting(true);
     try {
-      await api.post('/auth/register', { ...newDoctor, role: 'doctor' });
+      // Use the Admin-Only endpoint to create staff
+      await api.post('/users/staff', { ...newDoctor, role: 'doctor' });
+      
       const res = await api.get('/users/doctors'); 
       setDoctors(res.data);
       setShowModal(false);
@@ -45,9 +46,7 @@ const Doctors = () => {
     }
   };
 
-  const filteredDoctors = doctors.filter(d => 
-    d.name.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredDoctors = doctors.filter(d => d.name.toLowerCase().includes(searchTerm.toLowerCase()));
 
   if (loading) return <div className="p-10 text-center">Loading Staff...</div>;
 
@@ -58,9 +57,13 @@ const Doctors = () => {
           <h1 className="text-2xl font-bold text-gray-800">Medical Staff</h1>
           <p className="text-gray-500 text-sm">Manage doctors and specialists</p>
         </div>
-        <button onClick={() => setShowModal(true)} className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-lg font-medium shadow-lg shadow-blue-600/30">
-          <FaPlus /> Add Doctor
-        </button>
+        
+        {/* ONLY ADMIN CAN SEE THIS BUTTON */}
+        {user?.role === 'admin' && (
+          <button onClick={() => setShowModal(true)} className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-lg font-medium shadow-lg shadow-blue-600/30">
+            <FaPlus /> Add Doctor
+          </button>
+        )}
       </div>
 
       <div className="relative">
@@ -79,7 +82,12 @@ const Doctors = () => {
               <FaUserMd className="w-full h-full text-gray-300 p-3" />
             </div>
             <h3 className="font-bold text-gray-800 text-lg">{doc.name}</h3>
-            <p className="text-blue-500 text-sm font-medium mb-4">General Practitioner</p>
+            
+            {/* UPDATED LINE: Show dynamic specialization */}
+            <p className="text-blue-500 text-sm font-medium mb-4">
+              {doc.specialization || "General Practitioner"}
+            </p>
+            
             <p className="text-gray-400 text-sm">{doc.email}</p>
           </motion.div>
         ))}

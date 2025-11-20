@@ -9,21 +9,16 @@ import {
   PieChart, Pie, Cell, Legend
 } from 'recharts';
 
-const COLORS = ['#10B981', '#3B82F6', '#EF4444', '#F59E0B']; // Green, Blue, Red, Yellow
+const COLORS = ['#10B981', '#3B82F6', '#EF4444', '#F59E0B'];
 
 const Dashboard = () => {
   const navigate = useNavigate();
-  const { api } = useAuth();
+  const { api, user } = useAuth(); // Get User Role
   
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState({
-    totalPatients: 0,
-    totalDoctors: 0,
-    totalAppointments: 0,
-    pendingAppointments: 0,
-    recentActivity: [],
-    pieData: [],
-    chartData: []
+    totalPatients: 0, totalDoctors: 0, totalAppointments: 0, pendingAppointments: 0,
+    recentActivity: [], pieData: [], chartData: []
   });
 
   useEffect(() => {
@@ -40,18 +35,27 @@ const Dashboard = () => {
     fetchStats();
   }, [api]);
 
+  // --- DYNAMIC CARDS LOGIC ---
   const statsCards = [
     { title: 'Total Patients', value: stats.totalPatients, icon: <FaUserInjured />, color: 'bg-blue-500' },
     { title: 'Appointments', value: stats.totalAppointments, icon: <FaCalendarCheck />, color: 'bg-green-500' },
     { title: 'Total Doctors', value: stats.totalDoctors, icon: <FaUserMd />, color: 'bg-purple-500' },
-    { title: 'Pending Actions', value: stats.pendingAppointments, icon: <FaDollarSign />, color: 'bg-yellow-500' },
   ];
+
+  // Only show "Pending Actions/Revenue" card if NOT a patient
+  if (user?.role !== 'patient') {
+    statsCards.push({ 
+      title: 'Pending Actions', 
+      value: stats.pendingAppointments, 
+      icon: <FaDollarSign />, 
+      color: 'bg-yellow-500' 
+    });
+  }
 
   if (loading) return <div className="p-10 text-center text-gray-500">Loading Real-Time Data...</div>;
 
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div className="flex flex-col md:flex-row justify-between items-center">
         <div>
           <h1 className="text-2xl font-bold text-gray-800">Dashboard Overview</h1>
@@ -65,8 +69,8 @@ const Dashboard = () => {
         </button>
       </div>
 
-      {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      {/* Grid: Adjust columns based on number of cards */}
+      <div className={`grid grid-cols-1 md:grid-cols-2 ${user?.role === 'patient' ? 'lg:grid-cols-3' : 'lg:grid-cols-4'} gap-6`}>
         {statsCards.map((stat, index) => (
           <div key={index} className="bg-white rounded-xl p-6 shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
             <div className="flex justify-between items-start">
@@ -87,7 +91,6 @@ const Dashboard = () => {
 
       {/* Charts Section */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Area Chart */}
         <div className="lg:col-span-2 bg-white rounded-xl shadow-sm border border-gray-100 p-6">
           <h2 className="text-lg font-bold text-gray-800 mb-4">Monthly Appointments</h2>
           <div className="h-72">
@@ -113,22 +116,13 @@ const Dashboard = () => {
           </div>
         </div>
 
-        {/* Pie Chart */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-          <h2 className="text-lg font-bold text-gray-800 mb-4">Appointment Status</h2>
+          <h2 className="text-lg font-bold text-gray-800 mb-4">Status Overview</h2>
           <div className="h-64">
             {stats.pieData.length > 0 ? (
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
-                  <Pie
-                    data={stats.pieData}
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={60}
-                    outerRadius={80}
-                    paddingAngle={5}
-                    dataKey="value"
-                  >
+                  <Pie data={stats.pieData} cx="50%" cy="50%" innerRadius={60} outerRadius={80} paddingAngle={5} dataKey="value">
                     {stats.pieData.map((entry, index) => (
                       <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                     ))}
@@ -144,46 +138,48 @@ const Dashboard = () => {
         </div>
       </div>
 
-      {/* Recent Appointments Table */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-        <div className="p-6 border-b border-gray-100">
-          <h2 className="text-lg font-bold text-gray-800">Recent Activity</h2>
+      {/* Hide Recent Activity Table for Patients (Privacy) */}
+      {user?.role !== 'patient' && (
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+          <div className="p-6 border-b border-gray-100">
+            <h2 className="text-lg font-bold text-gray-800">Recent Activity</h2>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="bg-gray-50 text-gray-500 text-xs uppercase tracking-wider">
+                  <th className="p-4 font-medium">Patient</th>
+                  <th className="p-4 font-medium">Doctor</th>
+                  <th className="p-4 font-medium">Status</th>
+                  <th className="p-4 font-medium text-right">Action</th>
+                </tr>
+              </thead>
+              <tbody className="text-sm divide-y divide-gray-100">
+                {stats.recentActivity.length > 0 ? (
+                  stats.recentActivity.map((app) => (
+                    <tr key={app._id} className="hover:bg-gray-50">
+                      <td className="p-4 font-medium text-gray-800">{app.patient?.name || 'N/A'}</td>
+                      <td className="p-4 text-gray-600">{app.doctor?.name || 'N/A'}</td>
+                      <td className="p-4">
+                        <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
+                          app.status === 'confirmed' ? 'bg-green-100 text-green-600' : 
+                          app.status === 'cancelled' ? 'bg-red-100 text-red-600' : 
+                          'bg-yellow-100 text-yellow-600'
+                        }`}>
+                          {app.status}
+                        </span>
+                      </td>
+                      <td className="p-4 text-right text-gray-400"><FaEllipsisH /></td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr><td colSpan="4" className="p-8 text-center text-gray-400">No recent activity</td></tr>
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse">
-            <thead>
-              <tr className="bg-gray-50 text-gray-500 text-xs uppercase tracking-wider">
-                <th className="p-4 font-medium">Patient</th>
-                <th className="p-4 font-medium">Doctor</th>
-                <th className="p-4 font-medium">Status</th>
-                <th className="p-4 font-medium text-right">Action</th>
-              </tr>
-            </thead>
-            <tbody className="text-sm divide-y divide-gray-100">
-              {stats.recentActivity.length > 0 ? (
-                stats.recentActivity.map((app) => (
-                  <tr key={app._id} className="hover:bg-gray-50">
-                    <td className="p-4 font-medium text-gray-800">{app.patient?.name || 'N/A'}</td>
-                    <td className="p-4 text-gray-600">{app.doctor?.name || 'N/A'}</td>
-                    <td className="p-4">
-                      <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
-                        app.status === 'confirmed' ? 'bg-green-100 text-green-600' : 
-                        app.status === 'cancelled' ? 'bg-red-100 text-red-600' : 
-                        'bg-yellow-100 text-yellow-600'
-                      }`}>
-                        {app.status}
-                      </span>
-                    </td>
-                    <td className="p-4 text-right text-gray-400"><FaEllipsisH /></td>
-                  </tr>
-                ))
-              ) : (
-                <tr><td colSpan="4" className="p-8 text-center text-gray-400">No recent activity</td></tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
+      )}
     </div>
   );
 };
