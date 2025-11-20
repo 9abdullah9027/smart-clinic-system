@@ -1,67 +1,124 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useAuth } from '../context/AuthContext';
 import { 
   FaPlus, FaSearch, FaCalendarAlt, FaClock, FaUserMd, FaEllipsisV, 
-  FaCheckCircle, FaTimesCircle, FaHourglassHalf, FaTimes
+  FaCheckCircle, FaTimesCircle, FaHourglassHalf, FaTimes, FaSpinner, FaTrashAlt, FaCheck
 } from 'react-icons/fa';
 
-// --- MOCK DATA ---
-const initialAppointments = [
-  { id: 1, patient: 'Alice Smith', doctor: 'Dr. Sarah Wilson', type: 'General Checkup', date: '2023-11-15', time: '09:00 AM', status: 'Confirmed', avatar: 'https://ui-avatars.com/api/?name=Alice+Smith&background=random' },
-  { id: 2, patient: 'Michael Johnson', doctor: 'Dr. James House', type: 'Dental Surgery', date: '2023-11-15', time: '10:30 AM', status: 'Pending', avatar: 'https://ui-avatars.com/api/?name=Michael+Johnson&background=random' },
-];
-
 const Appointments = () => {
-  const [appointments, setAppointments] = useState(initialAppointments);
+  const { api, user } = useAuth();
+  
+  // Data State
+  const [appointments, setAppointments] = useState([]);
+  const [doctors, setDoctors] = useState([]);
+  const [loading, setLoading] = useState(true);
+  
+  // UI State
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('All');
-  
-  // Modal State
   const [showModal, setShowModal] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState('');
+  
+  // Action Menu State
+  const [activeMenuId, setActiveMenuId] = useState(null);
+
+  // Form State
   const [newAppt, setNewAppt] = useState({
-    patient: '', doctor: 'Dr. Sarah Wilson', date: '', time: '', type: 'Consultation'
+    doctor: '', date: '', time: '', reason: 'General Checkup'
   });
 
-  // Filter Logic
+  // Fetch Data
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const apptRes = await api.get('/appointments/my');
+        setAppointments(apptRes.data.appointments);
+        const docRes = await api.get('/users/doctors');
+        setDoctors(docRes.data);
+      } catch (err) {
+        console.error("Error fetching data:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchData();
+  }, [api]);
+
+  // Close menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = () => setActiveMenuId(null);
+    window.addEventListener('click', handleClickOutside);
+    return () => window.removeEventListener('click', handleClickOutside);
+  }, []);
+
+  const handleAddAppointment = async (e) => {
+    e.preventDefault();
+    setError('');
+    setSubmitting(true);
+    try {
+      const res = await api.post('/appointments', newAppt);
+      setAppointments([res.data.appointment, ...appointments]);
+      setShowModal(false);
+      setNewAppt({ doctor: '', date: '', time: '', reason: 'General Checkup' });
+    } catch (err) {
+      setError(err.response?.data?.message || "Failed to book appointment");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleStatusChange = async (id, newStatus) => {
+    try {
+      setAppointments(prev => prev.map(app => 
+        app._id === id ? { ...app, status: newStatus } : app
+      ));
+      await api.put(`/appointments/${id}`, { status: newStatus });
+      setActiveMenuId(null);
+    } catch (err) {
+      console.error("Failed to update status", err);
+    }
+  };
+
+  const handleDelete = async (id) => {
+    if(!window.confirm("Are you sure you want to delete this appointment?")) return;
+    try {
+      setAppointments(prev => prev.filter(app => app._id !== id));
+      await api.delete(`/appointments/${id}`);
+    } catch (err) {
+      console.error("Failed to delete", err);
+    }
+  };
+
   const filteredAppointments = appointments.filter(app => {
-    const matchesSearch = app.patient.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                          app.doctor.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStatus = statusFilter === 'All' || app.status === statusFilter;
+    const doctorName = app.doctor?.name || 'Unknown';
+    const patientName = app.patient?.name || 'Unknown';
+    const matchesSearch = patientName.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                          doctorName.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesStatus = statusFilter === 'All' || app.status === statusFilter.toLowerCase();
     return matchesSearch && matchesStatus;
   });
 
-  // Helpers
   const getStatusColor = (status) => {
     switch (status) {
-      case 'Confirmed': return 'bg-green-100 text-green-600 border-green-200';
-      case 'Pending': return 'bg-yellow-100 text-yellow-600 border-yellow-200';
-      case 'Cancelled': return 'bg-red-100 text-red-600 border-red-200';
+      case 'confirmed': return 'bg-green-100 text-green-600 border-green-200';
+      case 'pending': return 'bg-yellow-100 text-yellow-600 border-yellow-200';
+      case 'cancelled': return 'bg-red-100 text-red-600 border-red-200';
       default: return 'bg-gray-100 text-gray-600';
     }
   };
 
   const getStatusIcon = (status) => {
     switch (status) {
-      case 'Confirmed': return <FaCheckCircle />;
-      case 'Pending': return <FaHourglassHalf />;
-      case 'Cancelled': return <FaTimesCircle />;
+      case 'confirmed': return <FaCheckCircle />;
+      case 'pending': return <FaHourglassHalf />;
+      case 'cancelled': return <FaTimesCircle />;
       default: return null;
     }
   };
 
-  // Handle New Appointment Submit
-  const handleAddAppointment = (e) => {
-    e.preventDefault();
-    const appointment = {
-      id: appointments.length + 1,
-      ...newAppt,
-      status: 'Pending', // Default status
-      avatar: `https://ui-avatars.com/api/?name=${newAppt.patient}&background=random`
-    };
-    setAppointments([appointment, ...appointments]); // Add to top of list
-    setShowModal(false); // Close modal
-    setNewAppt({ patient: '', doctor: 'Dr. Sarah Wilson', date: '', time: '', type: 'Consultation' }); // Reset form
-  };
+  if (loading) return <div className="p-10 text-center">Loading appointments...</div>;
 
   return (
     <div className="space-y-6 relative">
@@ -71,12 +128,14 @@ const Appointments = () => {
           <h1 className="text-2xl font-bold text-gray-800">Appointments</h1>
           <p className="text-gray-500 text-sm">Manage and schedule patient appointments</p>
         </div>
-        <button 
-          onClick={() => setShowModal(true)}
-          className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-lg shadow-lg shadow-blue-600/30 transition-all font-medium"
-        >
-          <FaPlus /> New Appointment
-        </button>
+        {(user?.role === 'patient' || user?.role === 'admin') && (
+          <button 
+            onClick={() => setShowModal(true)}
+            className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-lg shadow-lg shadow-blue-600/30 transition-all font-medium"
+          >
+            <FaPlus /> New Appointment
+          </button>
+        )}
       </div>
 
       {/* Filters */}
@@ -106,43 +165,99 @@ const Appointments = () => {
         </div>
       </div>
 
-      {/* List */}
-      <motion.div layout className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-        <div className="overflow-x-auto">
+      {/* List Container */}
+      <motion.div layout className="bg-white rounded-xl shadow-sm border border-gray-100 min-h-[400px]">
+        {/* Added pb-32 here to create extra scroll space at the bottom for the menu */}
+        <div className="overflow-x-auto rounded-xl pb-32">
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="bg-gray-50 text-gray-500 text-xs uppercase tracking-wider border-b border-gray-100">
-                <th className="p-5 font-semibold">Patient Name</th>
+                <th className="p-5 font-semibold">Patient</th>
                 <th className="p-5 font-semibold">Doctor</th>
                 <th className="p-5 font-semibold">Date & Time</th>
-                <th className="p-5 font-semibold">Type</th>
+                <th className="p-5 font-semibold">Reason</th>
                 <th className="p-5 font-semibold">Status</th>
                 <th className="p-5 font-semibold text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
-              {filteredAppointments.map((app) => (
-                <tr key={app.id} className="hover:bg-gray-50 transition-colors">
-                  <td className="p-5 flex items-center gap-3">
-                    <img src={app.avatar} alt="" className="w-10 h-10 rounded-full" />
-                    <div>
-                      <p className="font-medium text-gray-800">{app.patient}</p>
-                      <p className="text-xs text-gray-400">ID: #{app.id}</p>
-                    </div>
-                  </td>
-                  <td className="p-5 text-gray-600"><div className="flex items-center gap-2"><FaUserMd className="text-blue-400"/>{app.doctor}</div></td>
-                  <td className="p-5"><div className="text-sm text-gray-700"><FaCalendarAlt className="inline mr-1 text-gray-400"/>{app.date}</div><div className="text-xs text-gray-500 mt-1"><FaClock className="inline mr-1 text-gray-400"/>{app.time}</div></td>
-                  <td className="p-5 text-gray-600 text-sm">{app.type}</td>
-                  <td className="p-5"><span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium border ${getStatusColor(app.status)}`}>{getStatusIcon(app.status)} {app.status}</span></td>
-                  <td className="p-5 text-right"><button className="text-gray-400 hover:text-blue-600"><FaEllipsisV /></button></td>
+              {filteredAppointments.length > 0 ? (
+                filteredAppointments.map((app) => (
+                  <tr key={app._id} className="hover:bg-gray-50 transition-colors relative">
+                    <td className="p-5">
+                      <div className="font-medium text-gray-800">{app.patient?.name || 'N/A'}</div>
+                      <div className="text-xs text-gray-400">{app.patient?.email}</div>
+                    </td>
+                    <td className="p-5 text-gray-600">
+                      <div className="flex items-center gap-2"><FaUserMd className="text-blue-400"/>{app.doctor?.name || 'N/A'}</div>
+                    </td>
+                    <td className="p-5">
+                      <div className="text-sm text-gray-700"><FaCalendarAlt className="inline mr-1 text-gray-400"/>{new Date(app.date).toLocaleDateString()}</div>
+                      <div className="text-xs text-gray-500 mt-1"><FaClock className="inline mr-1 text-gray-400"/>{app.time}</div>
+                    </td>
+                    <td className="p-5 text-gray-600 text-sm">{app.reason}</td>
+                    <td className="p-5"><span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium border ${getStatusColor(app.status)}`}>{getStatusIcon(app.status)} {app.status}</span></td>
+                    
+                    {/* --- ACTION MENU --- */}
+                    <td className="p-5 text-right relative">
+                      <button 
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setActiveMenuId(activeMenuId === app._id ? null : app._id);
+                        }}
+                        className="text-gray-400 hover:text-blue-600 p-2 rounded-full hover:bg-gray-100 transition-colors"
+                      >
+                        <FaEllipsisV />
+                      </button>
+
+                      <AnimatePresence>
+                        {activeMenuId === app._id && (
+                          <motion.div 
+                            initial={{ opacity: 0, scale: 0.95 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            exit={{ opacity: 0, scale: 0.95 }}
+                            // Always open downwards (top-12)
+                            className="absolute right-10 top-12 w-48 bg-white rounded-lg shadow-xl border border-gray-100 z-50 overflow-hidden"
+                            onClick={(e) => e.stopPropagation()} 
+                          >
+                            <div className="py-1">
+                              <button 
+                                onClick={() => handleStatusChange(app._id, 'confirmed')}
+                                className="w-full text-left px-4 py-2 text-sm text-green-600 hover:bg-green-50 flex items-center gap-2"
+                              >
+                                <FaCheck /> Mark Confirmed
+                              </button>
+                              <button 
+                                onClick={() => handleStatusChange(app._id, 'cancelled')}
+                                className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center gap-2"
+                              >
+                                <FaTimes /> Mark Cancelled
+                              </button>
+                              <div className="border-t border-gray-100 my-1"></div>
+                              <button 
+                                onClick={() => handleDelete(app._id)}
+                                className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2"
+                              >
+                                <FaTrashAlt /> Delete
+                              </button>
+                            </div>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan="6" className="p-8 text-center text-gray-500">No appointments found.</td>
                 </tr>
-              ))}
+              )}
             </tbody>
           </table>
         </div>
       </motion.div>
 
-      {/* NEW APPOINTMENT MODAL */}
+      {/* Modal */}
       <AnimatePresence>
         {showModal && (
           <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
@@ -156,73 +271,21 @@ const Appointments = () => {
                 <h3 className="text-lg font-bold text-gray-800">Book Appointment</h3>
                 <button onClick={() => setShowModal(false)} className="text-gray-400 hover:text-red-500"><FaTimes /></button>
               </div>
-              
               <form onSubmit={handleAddAppointment} className="p-6 space-y-4">
+                {error && <div className="p-3 bg-red-100 text-red-600 text-sm rounded">{error}</div>}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Patient Name</label>
-                  <input 
-                    type="text" 
-                    required
-                    className="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
-                    placeholder="Ex: John Doe"
-                    value={newAppt.patient}
-                    onChange={e => setNewAppt({...newAppt, patient: e.target.value})}
-                  />
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Select Doctor</label>
+                  <select required className="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-white" value={newAppt.doctor} onChange={e => setNewAppt({...newAppt, doctor: e.target.value})}>
+                    <option value="">-- Choose a Doctor --</option>
+                    {doctors.map(doc => <option key={doc._id} value={doc._id}>{doc.name}</option>)}
+                  </select>
                 </div>
-
                 <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Date</label>
-                    <input 
-                      type="date" 
-                      required
-                      className="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
-                      value={newAppt.date}
-                      onChange={e => setNewAppt({...newAppt, date: e.target.value})}
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Time</label>
-                    <input 
-                      type="time" 
-                      required
-                      className="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
-                      value={newAppt.time}
-                      onChange={e => setNewAppt({...newAppt, time: e.target.value})}
-                    />
-                  </div>
+                  <div><label className="block text-sm font-medium text-gray-700 mb-1">Date</label><input type="date" required className="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" value={newAppt.date} onChange={e => setNewAppt({...newAppt, date: e.target.value})} /></div>
+                  <div><label className="block text-sm font-medium text-gray-700 mb-1">Time</label><input type="time" required className="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" value={newAppt.time} onChange={e => setNewAppt({...newAppt, time: e.target.value})} /></div>
                 </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Doctor</label>
-                    <select 
-                      className="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
-                      value={newAppt.doctor}
-                      onChange={e => setNewAppt({...newAppt, doctor: e.target.value})}
-                    >
-                      <option>Dr. Sarah Wilson</option>
-                      <option>Dr. James House</option>
-                      <option>Dr. Emily Stone</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Type</label>
-                    <select 
-                      className="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
-                      value={newAppt.type}
-                      onChange={e => setNewAppt({...newAppt, type: e.target.value})}
-                    >
-                      <option>Consultation</option>
-                      <option>Checkup</option>
-                      <option>Surgery</option>
-                    </select>
-                  </div>
-                </div>
-
-                <button type="submit" className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-lg transition-colors mt-2">
-                  Confirm Booking
-                </button>
+                <div><label className="block text-sm font-medium text-gray-700 mb-1">Reason / Notes</label><textarea rows="2" required className="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" value={newAppt.reason} onChange={e => setNewAppt({...newAppt, reason: e.target.value})}></textarea></div>
+                <button type="submit" disabled={submitting} className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-lg transition-colors mt-2 flex justify-center items-center gap-2">{submitting ? <FaSpinner className="animate-spin" /> : 'Confirm Booking'}</button>
               </form>
             </motion.div>
           </div>

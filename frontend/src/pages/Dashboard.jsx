@@ -1,73 +1,62 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 import { 
-  FaUserInjured, 
-  FaCalendarCheck, 
-  FaUserMd, 
-  FaDollarSign,
-  FaArrowUp,
-  FaArrowDown,
-  FaEllipsisH
+  FaUserInjured, FaCalendarCheck, FaUserMd, FaDollarSign, FaArrowUp, FaEllipsisH 
 } from 'react-icons/fa';
 import { 
-  AreaChart, 
-  Area, 
-  XAxis, 
-  YAxis, 
-  CartesianGrid, 
-  Tooltip, 
-  ResponsiveContainer,
-  PieChart,
-  Pie,
-  Cell,
-  Legend
+  AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
+  PieChart, Pie, Cell, Legend
 } from 'recharts';
 
-// --- MOCK DATA START ---
-const statsData = [
-  { title: 'Total Patients', value: '1,245', icon: <FaUserInjured />, color: 'bg-blue-500', trend: '+12%', isUp: true },
-  { title: 'Appointments', value: '86', icon: <FaCalendarCheck />, color: 'bg-green-500', trend: '+5%', isUp: true },
-  { title: 'Total Doctors', value: '14', icon: <FaUserMd />, color: 'bg-purple-500', trend: '0%', isUp: true },
-  { title: 'Revenue', value: '$12,450', icon: <FaDollarSign />, color: 'bg-yellow-500', trend: '-2%', isUp: false },
-];
-
-const chartData = [
-  { name: 'Jan', patients: 400, revenue: 2400 },
-  { name: 'Feb', patients: 300, revenue: 1398 },
-  { name: 'Mar', patients: 200, revenue: 9800 },
-  { name: 'Apr', patients: 278, revenue: 3908 },
-  { name: 'May', patients: 189, revenue: 4800 },
-  { name: 'Jun', patients: 239, revenue: 3800 },
-];
-
-const pieData = [
-  { name: 'Completed', value: 400 },
-  { name: 'Pending', value: 300 },
-  { name: 'Cancelled', value: 100 },
-];
-
-const COLORS = ['#10B981', '#3B82F6', '#EF4444']; // Green, Blue, Red
-
-const recentAppointments = [
-  { id: 1, patient: 'Alice Smith', doctor: 'Dr. Watson', date: '2023-10-24', status: 'Completed', statusColor: 'text-green-500 bg-green-100' },
-  { id: 2, patient: 'Bob Jones', doctor: 'Dr. House', date: '2023-10-24', status: 'Pending', statusColor: 'text-yellow-500 bg-yellow-100' },
-  { id: 3, patient: 'Charlie Brown', doctor: 'Dr. Watson', date: '2023-10-23', status: 'Cancelled', statusColor: 'text-red-500 bg-red-100' },
-  { id: 4, patient: 'Diana Prince', doctor: 'Dr. Strange', date: '2023-10-22', status: 'Completed', statusColor: 'text-green-500 bg-green-100' },
-];
-// --- MOCK DATA END ---
+const COLORS = ['#10B981', '#3B82F6', '#EF4444', '#F59E0B']; // Green, Blue, Red, Yellow
 
 const Dashboard = () => {
   const navigate = useNavigate();
+  const { api } = useAuth();
+  
+  const [loading, setLoading] = useState(true);
+  const [stats, setStats] = useState({
+    totalPatients: 0,
+    totalDoctors: 0,
+    totalAppointments: 0,
+    pendingAppointments: 0,
+    recentActivity: [],
+    pieData: [],
+    chartData: []
+  });
+
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        const res = await api.get('/dashboard/stats');
+        setStats(res.data);
+      } catch (error) {
+        console.error("Error fetching dashboard stats:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchStats();
+  }, [api]);
+
+  const statsCards = [
+    { title: 'Total Patients', value: stats.totalPatients, icon: <FaUserInjured />, color: 'bg-blue-500' },
+    { title: 'Appointments', value: stats.totalAppointments, icon: <FaCalendarCheck />, color: 'bg-green-500' },
+    { title: 'Total Doctors', value: stats.totalDoctors, icon: <FaUserMd />, color: 'bg-purple-500' },
+    { title: 'Pending Actions', value: stats.pendingAppointments, icon: <FaDollarSign />, color: 'bg-yellow-500' },
+  ];
+
+  if (loading) return <div className="p-10 text-center text-gray-500">Loading Real-Time Data...</div>;
 
   return (
     <div className="space-y-6">
-      {/* Header Section */}
+      {/* Header */}
       <div className="flex flex-col md:flex-row justify-between items-center">
         <div>
           <h1 className="text-2xl font-bold text-gray-800">Dashboard Overview</h1>
-          <p className="text-gray-500 text-sm">Welcome back, here is what's happening today.</p>
+          <p className="text-gray-500 text-sm">Real-time clinic performance.</p>
         </div>
-        {/* Functional Button -> Redirects to Appointments Page */}
         <button 
           onClick={() => navigate('/appointments')} 
           className="mt-4 md:mt-0 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg shadow-lg shadow-blue-600/30 transition-all text-sm font-medium flex items-center gap-2"
@@ -78,7 +67,7 @@ const Dashboard = () => {
 
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {statsData.map((stat, index) => (
+        {statsCards.map((stat, index) => (
           <div key={index} className="bg-white rounded-xl p-6 shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
             <div className="flex justify-between items-start">
               <div>
@@ -89,12 +78,8 @@ const Dashboard = () => {
                 {stat.icon}
               </div>
             </div>
-            <div className="mt-4 flex items-center text-sm">
-              <span className={`flex items-center font-medium ${stat.isUp ? 'text-green-500' : 'text-red-500'}`}>
-                {stat.isUp ? <FaArrowUp className="mr-1 text-xs" /> : <FaArrowDown className="mr-1 text-xs" />}
-                {stat.trend}
-              </span>
-              <span className="text-gray-400 ml-2">vs last month</span>
+            <div className="mt-4 flex items-center text-sm text-green-500 font-medium">
+              <FaArrowUp className="mr-1 text-xs" /> Live Data
             </div>
           </div>
         ))}
@@ -102,100 +87,99 @@ const Dashboard = () => {
 
       {/* Charts Section */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Main Area Chart (Patient Trends) */}
+        {/* Area Chart */}
         <div className="lg:col-span-2 bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-          <h2 className="text-lg font-bold text-gray-800 mb-4">Patient Statistics</h2>
+          <h2 className="text-lg font-bold text-gray-800 mb-4">Monthly Appointments</h2>
           <div className="h-72">
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={chartData}>
-                <defs>
-                  <linearGradient id="colorPatients" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#3B82F6" stopOpacity={0.3}/>
-                    <stop offset="95%" stopColor="#3B82F6" stopOpacity={0}/>
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E5E7EB" />
-                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: '#9CA3AF', fontSize: 12}} dy={10} />
-                <YAxis axisLine={false} tickLine={false} tick={{fill: '#9CA3AF', fontSize: 12}} />
-                <Tooltip 
-                  contentStyle={{ backgroundColor: '#fff', borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}
-                />
-                <Area type="monotone" dataKey="patients" stroke="#3B82F6" strokeWidth={3} fillOpacity={1} fill="url(#colorPatients)" />
-              </AreaChart>
-            </ResponsiveContainer>
+            {stats.chartData.length > 0 ? (
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={stats.chartData}>
+                  <defs>
+                    <linearGradient id="colorPatients" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#3B82F6" stopOpacity={0.3}/>
+                      <stop offset="95%" stopColor="#3B82F6" stopOpacity={0}/>
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E5E7EB" />
+                  <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: '#9CA3AF', fontSize: 12}} dy={10} />
+                  <YAxis axisLine={false} tickLine={false} tick={{fill: '#9CA3AF', fontSize: 12}} />
+                  <Tooltip />
+                  <Area type="monotone" dataKey="patients" stroke="#3B82F6" strokeWidth={3} fillOpacity={1} fill="url(#colorPatients)" />
+                </AreaChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="h-full flex items-center justify-center text-gray-400">No appointment history yet</div>
+            )}
           </div>
         </div>
 
-        {/* Pie Chart (Appointment Status) */}
+        {/* Pie Chart */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
           <h2 className="text-lg font-bold text-gray-800 mb-4">Appointment Status</h2>
           <div className="h-64">
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie
-                  data={pieData}
-                  cx="50%"
-                  cy="50%"
-                  innerRadius={60}
-                  outerRadius={80}
-                  paddingAngle={5}
-                  dataKey="value"
-                >
-                  {pieData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                  ))}
-                </Pie>
-                <Legend verticalAlign="bottom" height={36}/>
-                <Tooltip />
-              </PieChart>
-            </ResponsiveContainer>
-          </div>
-          <div className="text-center mt-2">
-            <p className="text-sm text-gray-500">Total Appointments: <span className="font-bold text-gray-800">800</span></p>
+            {stats.pieData.length > 0 ? (
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={stats.pieData}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={60}
+                    outerRadius={80}
+                    paddingAngle={5}
+                    dataKey="value"
+                  >
+                    {stats.pieData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                    ))}
+                  </Pie>
+                  <Legend verticalAlign="bottom" />
+                  <Tooltip />
+                </PieChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="h-full flex items-center justify-center text-gray-400">No data available</div>
+            )}
           </div>
         </div>
       </div>
 
       {/* Recent Appointments Table */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-        <div className="p-6 border-b border-gray-100 flex justify-between items-center">
-          <h2 className="text-lg font-bold text-gray-800">Recent Appointments</h2>
-          <button 
-            onClick={() => navigate('/appointments')}
-            className="text-blue-500 hover:text-blue-600 text-sm font-medium transition-colors"
-          >
-            View All
-          </button>
+        <div className="p-6 border-b border-gray-100">
+          <h2 className="text-lg font-bold text-gray-800">Recent Activity</h2>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="bg-gray-50 text-gray-500 text-xs uppercase tracking-wider">
-                <th className="p-4 font-medium">Patient Name</th>
+                <th className="p-4 font-medium">Patient</th>
                 <th className="p-4 font-medium">Doctor</th>
-                <th className="p-4 font-medium">Date</th>
                 <th className="p-4 font-medium">Status</th>
-                <th className="p-4 font-medium text-right">Actions</th>
+                <th className="p-4 font-medium text-right">Action</th>
               </tr>
             </thead>
             <tbody className="text-sm divide-y divide-gray-100">
-              {recentAppointments.map((app) => (
-                <tr key={app.id} className="hover:bg-gray-50 transition-colors">
-                  <td className="p-4 font-medium text-gray-800">{app.patient}</td>
-                  <td className="p-4 text-gray-600">{app.doctor}</td>
-                  <td className="p-4 text-gray-500">{app.date}</td>
-                  <td className="p-4">
-                    <span className={`px-3 py-1 rounded-full text-xs font-semibold ${app.statusColor}`}>
-                      {app.status}
-                    </span>
-                  </td>
-                  <td className="p-4 text-right">
-                    <button className="text-gray-400 hover:text-blue-600 transition-colors">
-                      <FaEllipsisH />
-                    </button>
-                  </td>
-                </tr>
-              ))}
+              {stats.recentActivity.length > 0 ? (
+                stats.recentActivity.map((app) => (
+                  <tr key={app._id} className="hover:bg-gray-50">
+                    <td className="p-4 font-medium text-gray-800">{app.patient?.name || 'N/A'}</td>
+                    <td className="p-4 text-gray-600">{app.doctor?.name || 'N/A'}</td>
+                    <td className="p-4">
+                      <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
+                        app.status === 'confirmed' ? 'bg-green-100 text-green-600' : 
+                        app.status === 'cancelled' ? 'bg-red-100 text-red-600' : 
+                        'bg-yellow-100 text-yellow-600'
+                      }`}>
+                        {app.status}
+                      </span>
+                    </td>
+                    <td className="p-4 text-right text-gray-400"><FaEllipsisH /></td>
+                  </tr>
+                ))
+              ) : (
+                <tr><td colSpan="4" className="p-8 text-center text-gray-400">No recent activity</td></tr>
+              )}
             </tbody>
           </table>
         </div>

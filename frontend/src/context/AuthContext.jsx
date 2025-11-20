@@ -8,12 +8,12 @@ export const AuthProvider = ({ children }) => {
   const [token, setToken] = useState(localStorage.getItem('token'));
   const [loading, setLoading] = useState(true);
 
-  // API Instance
+  // 1. Setup Axios Instance
   const api = axios.create({
-    baseURL: 'http://localhost:5000/api', 
+    baseURL: 'http://localhost:5000/api', // Points to your Node.js server
   });
 
-  // Attach token to requests
+  // 2. Attach Token to Every Request
   api.interceptors.request.use((config) => {
     const storedToken = localStorage.getItem('token');
     if (storedToken) {
@@ -22,58 +22,58 @@ export const AuthProvider = ({ children }) => {
     return config;
   });
 
-  // Check if user is logged in on boot
+  // 3. Check Login Status on Refresh
   useEffect(() => {
     const storedUser = localStorage.getItem('user');
-    if (token && storedUser) {
+    const storedToken = localStorage.getItem('token');
+    
+    if (storedToken && storedUser) {
       setUser(JSON.parse(storedUser));
+      setToken(storedToken);
     }
     setLoading(false);
-  }, [token]);
+  }, []);
 
-  // Login Action
+  // --- REAL LOGIN ACTION ---
   const login = async (email, password) => {
-    // --- TEMPORARY TESTING MODE START ---
-    // We are bypassing the backend to test the UI flow
-    
     try {
-      // Simulate network delay for realism (optional)
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      const res = await api.post('/auth/login', { email, password });
+      
+      // Backend returns: { message, token, user: { id, name, role... } }
+      const { token, user } = res.data;
 
-      // REAL API CALL (COMMENTED OUT)
-      // const res = await api.post('/auth/login', { email, password });
-      // const { token, user } = res.data;
-
-      // MOCK DATA
-      const token = "mock-token-123456789";
-      const user = { 
-        name: "Dr. Admin", 
-        email: email, 
-        role: "admin",
-        id: "user_001" 
-      };
-
-      // Save to local storage
       localStorage.setItem('token', token);
       localStorage.setItem('user', JSON.stringify(user));
       
-      // Update State
       setToken(token);
       setUser(user);
-      
       return { success: true };
-
     } catch (error) {
       console.error("Login Error:", error);
       return { 
         success: false, 
-        message: 'Login failed' 
+        message: error.response?.data?.message || 'Login failed' 
       };
     }
-    // --- TEMPORARY TESTING MODE END ---
   };
 
-  // Logout Action
+  // --- REAL REGISTER ACTION ---
+  const register = async (name, email, password, role = 'doctor') => {
+    try {
+      await api.post('/auth/register', { name, email, password, role });
+      // After register, we usually ask them to login, or login automatically
+      // For now, we return success so the UI can switch to login view
+      return { success: true };
+    } catch (error) {
+      console.error("Register Error:", error);
+      return { 
+        success: false, 
+        message: error.response?.data?.message || 'Registration failed' 
+      };
+    }
+  };
+
+  // --- LOGOUT ACTION ---
   const logout = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
@@ -82,7 +82,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, token, login, logout, loading }}>
+    <AuthContext.Provider value={{ user, token, login, register, logout, loading, api }}>
       {children}
     </AuthContext.Provider>
   );
