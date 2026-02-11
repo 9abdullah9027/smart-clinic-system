@@ -16,7 +16,7 @@ The **Smart Clinic System** is a production-grade interface designed to moderniz
 * [cite_start]**Scalable API Structure:** Comprehensive API structure drafting to support seamless future backend integration and data handling[cite: 35].
 
 ## 💻 Tech Stack
-* [cite_start]**Framework:** React.js [cite: 32]
+* [cite_start]**Framework:** JavaScript [cite: 32]
 * [cite_start]**Styling:** Tailwind CSS [cite: 32]
 * [cite_start]**Architecture:** System Design & API Drafting [cite: 32, 35]
 
